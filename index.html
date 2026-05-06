@@ -43,6 +43,7 @@ body { margin: 0; }
 <script>
 
 // 初始化地图
+
 const map = new maplibregl.Map({
   container: 'map',
   style: {
@@ -71,48 +72,66 @@ const map = new maplibregl.Map({
 
 
 // 图层配置
+
 const layerConfig = [
   {
     group: "Post Office",
     layers: [
-      { id: "postoffice_afg", name: "postoffice_afg", url: "data/postoffice_afg.geojson" },
-      { id: "postoffice_col", name: "postoffice_col", url: "data/postoffice_col.geojson" },
-      { id: "postoffice_com", name: "postoffice_com", url: "data/postoffice_com.geojson" },
-      { id: "postoffice_jor", name: "postoffice_jor", url: "data/postoffice_jor.geojson" },
-      { id: "postoffice_khm", name: "postoffice_khm", url: "data/postoffice_khm.geojson" },
-      { id: "postoffice_pan", name: "postoffice_pan", url: "data/postoffice_pan.geojson" },
-      { id: "postoffice_sdn", name: "postoffice_sdn", url: "data/postoffice_sdn.geojson" },
-      { id: "postoffice_som", name: "postoffice_som", url: "data/postoffice_som.geojson" },
-      { id: "postoffice_swz", name: "postoffice_swz", url: "data/postoffice_swz.geojson" },
-      { id: "postoffice_tca", name: "postoffice_tca", url: "data/postoffice_tca.geojson" },
-      { id: "postoffice_tgo", name: "postoffice_tgo", url: "data/postoffice_tgo.geojson" },
-      { id: "postoffice_tto", name: "postoffice_tto", url: "data/postoffice_tto.geojson" },
-      { id: "postoffice_ury", name: "postoffice_ury", url: "data/postoffice_ury.geojson" }
+      { id: "postoffice_afg", name: "AFG", url: "data/postoffice_afg.geojson" },
+      { id: "postoffice_col", name: "COL", url: "data/postoffice_col.geojson" },
+      { id: "postoffice_com", name: "COM", url: "data/postoffice_com.geojson" },
+      { id: "postoffice_jor", name: "JOR", url: "data/postoffice_jor.geojson" },
+      { id: "postoffice_khm", name: "KHM", url: "data/postoffice_khm.geojson" },
+      { id: "postoffice_pan", name: "PAN", url: "data/postoffice_pan.geojson" },
+      { id: "postoffice_sdn", name: "SDN", url: "data/postoffice_sdn.geojson" },
+      { id: "postoffice_som", name: "SOM", url: "data/postoffice_som.geojson" },
+      { id: "postoffice_swz", name: "SWZ", url: "data/postoffice_swz.geojson" },
+      { id: "postoffice_tca", name: "TCA", url: "data/postoffice_tca.geojson" },
+      { id: "postoffice_tgo", name: "TGO", url: "data/postoffice_tgo.geojson" },
+      { id: "postoffice_tto", name: "TTO", url: "data/postoffice_tto.geojson" },
+      { id: "postoffice_ury", name: "URY", url: "data/postoffice_ury.geojson" }
     ]
   },
 
   {
     group: "2IPD",
     subgroups: [
-      {
-        name: "2025",
-        layers: [
-          { id: "2IPD_2025_PDL", name: "2IPD_2025_PDL", url: "data/2IPD_2025_PDL.geojson" },
-          { id: "2IPD_2025_Reliability", name: "2IPD_2025_Reliability", url: "data/2IPD_2025_Reliability.geojson" },
-          { id: "2IPD_2025_Reach", name: "2IPD_2025_Reach", url: "data/2IPD_2025_Reach.geojson" },
-          { id: "2IPD_2025_Relevance", name: "2IPD_2025_Relevance", url: "data/2IPD_2025_Relevance.geojson" },
-          { id: "2IPD_2025_Resilience", name: "2IPD_2025_Resilience", url: "data/2IPD_2025_Resilience.geojson" },
-          { id: "2IPD_2025_Score before bonus", name: "2IPD_2025_Score before bonus", url: "data/2IPD_2025_Score before bonus.geojson" },
-          { id: "2IPD_2025_Bonus", name: "2IPD_2025_Bonus", url: "data/2IPD_2025_Bonus.geojson" },
-          { id: "2IPD_2025_Score after bonus", name: "2IPD_2025_Score after bonus", url: "data/2IPD_2025_Score after bonus.geojson" }
-        ]
-      }
+      { name: "2025", layers: build2IPDLayers("2025") },
+      { name: "2024", layers: build2IPDLayers("2024") },
+      { name: "2023", layers: build2IPDLayers("2023") },
+      { name: "2022", layers: build2IPDLayers("2022") }
     ]
   }
 ];
 
+const sourceCache = {};
 
-// 工具函数
+// 工具函数 构建2IPD图层
+
+function build2IPDLayers(year) {
+
+  const fields = [
+    "PDL",
+    "Reliability",
+    "Reach",
+    "Relevance",
+    "Resilience",
+    "Score before bonus",
+    "Bonus",
+    "Score after bonus"
+  ];
+
+  return fields.map(f => ({
+    id: `2IPD_${year}_${f}`,
+    name: f,
+    field: `2IPD_${year}_${f}`,
+    year: year,
+    url: `data/2IPD_${year}.geojson`
+  }));
+}
+
+// 工具函数 开始状态下关闭所有图层
+
 function toggleLayer(id, visible) {
   if (!map.getLayer(id)) return;
 
@@ -123,149 +142,79 @@ function toggleLayer(id, visible) {
   );
 }
 
+// 工具函数 渲染图层
+
 function getPaint(layer, geometry) {
 
-  // 2IPD_2025_PDL（分类渲染）
-  if (layer.id === "2IPD_2025_PDL") {
+  const field = layer.field;
+
+  // 渲染图层 Post Office
+  if (geometry === 'Point' || geometry === 'MultiPoint') {
     return {
+      'circle-radius': 3,
+      'circle-color': '#ff0000',
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#fff'
+    };
+  }
+
+  // 渲染图层 2IPD
+  if (layer.id.startsWith('2IPD') && field) {
+
+    if (field.includes('PDL')) {
+      return {
+        "fill-color": [
+          "match",
+          ["get", field],
+          1, "#c4161c",
+          2, "#f15e38",
+          3, "#f58221",
+          4, "#e5a150",
+          5, "#fcdb6e",
+          6, "#9ccf81",
+          7, "#5ebe90",
+          8, "#2eb668",
+          9, "#13a449",
+          10, "#149145",
+          "#ccc"
+        ],
+        "fill-opacity": 0.8,
+        "fill-outline-color": "#000"
+      };
+    }
+
+    const gradient = (stops) => ({
       "fill-color": [
-        "match",
-        ["get", "2IPD_2025_PDL"],
+        "case",
+       // 如果字段不存在 / null / 空
+        ["!", ["has", field]], "#ccc",
 
-        1, "#c4161c",
-        2, "#f15e38",
-        3, "#f58221",
-        4, "#e5a150",
-        5, "#fcdb6e",
-        6, "#9ccf81",
-        7, "#5ebe90",
-        8, "#2eb668",
-        9, "#13a449",
-        10, "#149145",
+        ["==", ["get", field], null], "#ccc",
 
-        "#cccccc"
+      // 否则正常渐变
+        [
+          "interpolate", ["linear"],
+          ["to-number", ["get", field]],
+          ...stops
+        ]
       ],
+
       "fill-opacity": 0.8,
-      "fill-outline-color": "#000000"
-    };
+      "fill-outline-color": "#000"
+    });
+
+    if (field.includes("Reliability")) return gradient([0, "#eff3ff", 100, "#08306b"]);
+    if (field.includes("Reach")) return gradient([0, "#e5f5e0", 100, "#00441b"]);
+    if (field.includes("Relevance")) return gradient([0, "#ffffe5", 100, "#ffb300"]);
+    if (field.includes("Resilience")) return gradient([0, "#efedf5", 100, "#3f007d"]);
+    if (field.includes("Score before bonus")) return gradient([0, "#b10026", 50, "#ffffbf", 100, "#006837"]);
+    if (field.includes("Bonus")) return gradient([0, "#fcbba1", 15, "#b10026"]);
+    if (field.includes("Score after bonus")) return gradient([0, "#b10026", 50, "#ffffbf", 110, "#006837"]);
   }
-
-  // 2IPD_2025_Reliability（浅蓝 → 深蓝）
- if (layer.id === "2IPD_2025_Reliability") {
-    return {
-      "fill-color": [
-        "interpolate", ["linear"],
-        ["to-number", ["get", "2IPD_2025_Reliability"]],
-        0, "#eff3ff",   
-        100, "#08306b"   
-      ],
-      "fill-opacity": 0.8,
-      "fill-outline-color": "#000000"
-    };
-  }
-
-  // 2IPD_2025_Reach（浅绿 → 深绿）
-  if (layer.id === "2IPD_2025_Reach") {
-    return {
-      "fill-color": [
-        "interpolate", ["linear"],
-        ["to-number", ["get", "2IPD_2025_Reach"]],
-        0, "#e5f5e0",   
-        100, "#00441b"   
-      ],
-      "fill-opacity": 0.8,
-      "fill-outline-color": "#000000"
-    };
-  }
-
-  // 2IPD_2025_Relevance（浅黄 → 深黄）
-  if (layer.id === "2IPD_2025_Relevance") {
-    return {
-      "fill-color": [
-        "interpolate", ["linear"],
-        ["to-number", ["get", "2IPD_2025_Relevance"]],
-        0, "#ffffe5",    
-        100, "#ffb300"    
-      ],
-      "fill-opacity": 0.8,
-      "fill-outline-color": "#000000"
-    };
-  }
-
-  // 2IPD_2025_Resilience（浅紫 → 深紫）
-  if (layer.id === "2IPD_2025_Resilience") {
-    return {
-      "fill-color": [
-        "interpolate", ["linear"],
-        ["to-number", ["get", "2IPD_2025_Resilience"]],
-        0, "#efedf5",     
-        100, "#3f007d"    
-      ],
-      "fill-opacity": 0.8,
-      "fill-outline-color": "#000000"
-    };
-  }
-
-  // 2IPD_2025_Score before bonus（红 → 绿）
-  if (layer.id === "2IPD_2025_Score before bonus") {
-    return {
-      "fill-color": [
-        "interpolate", ["linear"],
-        ["to-number", ["get", "2IPD_2025_Score before bonus"]],
-        0, "#b10026",    // 红
-        50, "#ffffbf",   // 黄（中间）
-        100, "#006837"   // 绿   
-      ],
-      "fill-opacity": 0.8,
-      "fill-outline-color": "#000000"
-    };
-  }
-
-    // 2IPD_2025_Bonus（浅红 → 深红）
-  if (layer.id === "2IPD_2025_Bonus") {
-    return {
-      "fill-color": [
-        "interpolate", ["linear"],
-        ["to-number", ["get", "2IPD_2025_Bonus"]],
-        0, "#fcbba1",     
-        15, "#b10026"    
-      ],
-      "fill-opacity": 0.8,
-      "fill-outline-color": "#000000"
-    };
-  }
-
-    // 2IPD_2025_Score after bonus（红 → 绿）
-  if (layer.id === "2IPD_2025_Score after bonus") {
-    return {
-      "fill-color": [
-        "interpolate", ["linear"],
-        ["to-number", ["get", "2IPD_2025_Score after bonus"]],
-        0, "#b10026",    // 红
-        50, "#ffffbf",   // 黄（中间）
-        110, "#006837"   // 绿    
-      ],
-      "fill-opacity": 0.8,
-      "fill-outline-color": "#000000"
-    };
-  }
-
-
-  // Polygon
-  if (geometry === 'Polygon' || geometry === 'MultiPolygon') {
-    return {
-      'fill-color': '#ff0000',
-      'fill-opacity': 0.5,
-      'fill-outline-color': '#000000'
-    };
-  }
-
-  // Point（默认）
-  return {
-    'circle-radius': 3,
-    'circle-color': '#ff0000'
-  };
 }
+
+
+// 工具函数 切换图例
 
 function updateLegend(layerId) {
 
@@ -273,36 +222,40 @@ function updateLegend(layerId) {
   legend.innerHTML = '';
   legend.style.display = 'block';
 
-  // Post Office（点）
+  // ===== Post Office =====
   if (layerId.startsWith('postoffice')) {
     createPointLegend(legend);
     return;
   }
 
-  // 2IPD_PDL（分类 1–10）
-  if (layerId.startsWith('2IPD_2025_PDL')) {
+  // ===== 找配置 =====
+  const layerConfigItem = allLayers.find(l => l.id === layerId);
+  const field = layerConfigItem?.field;
+
+  if (!field) {
+    legend.style.display = 'none';
+    return;
+  }
+
+  // ===== PDL =====
+  if (field.includes('PDL')) {
     createPDLLegend(legend);
     return;
   }
 
-  // 其他 2IPD（渐变）
-  if (layerId.startsWith('2IPD') && !layerId.startsWith('2IPD_PDL')) {
+  // ===== 渐变 =====
+  const fillColor = map.getPaintProperty(layerId, 'fill-color');
 
-    const fillColor = map.getPaintProperty(layerId, 'fill-color');
-    
-    if (!fillColor) {
-      legend.style.display = 'none';
-      return;
-    }
-
-    createGradientLegendFromMapLibre(legend, layerId, fillColor);
-
+  if (!fillColor) {
+    legend.style.display = 'none';
     return;
   }
 
-  // 默认隐藏
-  legend.style.display = 'none';
+  createGradientLegendFromMapLibre(legend, layerId, fillColor);
 }
+
+
+// 工具函数 点图例
 
 function createPointLegend(container) {
 
@@ -333,6 +286,8 @@ function createPointLegend(container) {
   container.appendChild(item);
 }
 
+// 工具函数 PDL图例
+
 function createPDLLegend(container) {
 
   container.style.display = 'block';
@@ -347,8 +302,8 @@ function createPDLLegend(container) {
   // 新增一个横向容器
   const row = document.createElement('div');
   row.style.display = 'flex';
-  row.style.flexWrap = 'wrap'; // 可选：空间不够自动换行
-  row.style.gap = '8px';       // 元素间距
+  row.style.flexWrap = 'wrap'; 
+  row.style.gap = '8px'; 
 
   container.appendChild(row);
 
@@ -383,48 +338,61 @@ function createPDLLegend(container) {
     item.appendChild(colorBox);
     item.appendChild(label);
 
-    // 加到 row 而不是 container
     row.appendChild(item);
   }
 }
 
-
+// 工具函数 渐变图例
 function createGradientLegendFromMapLibre(container, layerId, fillColor) {
 
   container.style.display = 'block';
 
-  // 标题
+  // ===== 标题 =====
   const title = document.createElement('div');
-  title.innerText = layerId.replace('2IPD_2025_', '').replace(/_/g, ' ');
+  title.innerText = layerId
+    .replace(/2IPD_\d+_/, '')
+    .replace(/_/g, ' ');
   title.style.fontWeight = 'bold';
   title.style.marginBottom = '6px';
   container.appendChild(title);
 
-  // 如果不是 expression（比如 "#ff0000"）
+  // ===== 非表达式（纯色）=====
   if (!Array.isArray(fillColor)) {
-
     const box = document.createElement('div');
     box.style.width = '16px';
     box.style.height = '16px';
     box.style.background = fillColor;
     box.style.marginBottom = '4px';
-
     container.appendChild(box);
     return;
   }
 
-  // 如果不是 interpolate，直接退出（避免报错）
-  if (fillColor[0] !== 'interpolate') {
-    console.warn('Unsupported expression:', fillColor);
+  // ===== 递归查找 interpolate =====
+  function findInterpolate(expr) {
+    if (!Array.isArray(expr)) return null;
+    if (expr[0] === 'interpolate') return expr;
+
+    for (const item of expr) {
+      const found = findInterpolate(item);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  const interpolateExpr = findInterpolate(fillColor);
+
+  if (!interpolateExpr) {
+    console.warn('No interpolate found:', fillColor);
     return;
   }
 
-  // 提取 stops
+  // ===== 提取 stops =====
   const stops = [];
-  for (let i = 3; i < fillColor.length; i += 2) {
+
+  for (let i = 3; i < interpolateExpr.length; i += 2) {
     stops.push({
-      value: fillColor[i],
-      color: fillColor[i + 1]
+      value: Number(interpolateExpr[i]),
+      color: interpolateExpr[i + 1]
     });
   }
 
@@ -432,10 +400,11 @@ function createGradientLegendFromMapLibre(container, layerId, fillColor) {
 
   const min = stops[0].value;
   const max = stops[stops.length - 1].value;
+  const range = max - min || 1;
 
-  // 生成渐变
+  // ===== 生成渐变 =====
   const gradientStr = stops.map(s => {
-    const percent = ((s.value - min) / (max - min)) * 100;
+    const percent = ((s.value - min) / range) * 100;
     return `${s.color} ${percent}%`;
   }).join(',');
 
@@ -447,7 +416,7 @@ function createGradientLegendFromMapLibre(container, layerId, fillColor) {
 
   container.appendChild(bar);
 
-  // 标签（min / max）
+  // ===== 标签 =====
   const labels = document.createElement('div');
   labels.style.display = 'flex';
   labels.style.justifyContent = 'space-between';
@@ -465,9 +434,12 @@ function createGradientLegendFromMapLibre(container, layerId, fillColor) {
 }
 
 // 加载所有图层
+
+let allLayers = []; // 提到外面
+
 map.on('load', async () => {
 
-  const allLayers = [];
+  allLayers = [];
 
   // 扁平化
   layerConfig.forEach(group => {
@@ -482,45 +454,56 @@ map.on('load', async () => {
 
   // 加载数据
   const results = await Promise.all(
-    allLayers.map(layer =>
-      fetch(layer.url)
+    allLayers.map(layer => {
+      if (sourceCache[layer.url]) {
+        return sourceCache[layer.url];
+      }
+
+      return fetch(layer.url)
         .then(res => res.json())
+        .then(data => {
+          sourceCache[layer.url] = data;
+          return data;
+        })
         .catch(err => {
           console.error(`Failed to load: ${layer.id}`, err);
           return null;
-        })
-    )
+        });
+    })
   );
 
-  // 单例 popup
   const popup = new maplibregl.Popup({
     closeButton: true,
     closeOnClick: false
   });
 
-  // 添加图层（默认隐藏）
+  // 添加图层
   allLayers.forEach((layer, index) => {
 
     const geojson = results[index];
     if (!geojson || !geojson.features?.length) return;
 
-    map.addSource(layer.id, {
-      type: 'geojson',
-      data: geojson
-    });
+    // 共享 source（避免重复加载）
+    if (!map.getSource(layer.url)) {
+      map.addSource(layer.url, {
+        type: 'geojson',
+        data: geojson
+      });
+    }
 
+    // 自动识别几何类型
     const geometry = geojson.features[0].geometry.type;
 
-    let layerType = 'circle';
-    if (geometry.includes('Polygon')) layerType = 'fill';
+    let layerType = 'fill';
+    if (geometry.includes('Point')) layerType = 'circle';
     else if (geometry.includes('Line')) layerType = 'line';
 
     map.addLayer({
       id: layer.id,
       type: layerType,
-      source: layer.id,
-      layout: { visibility: "none" }, // 默认隐藏
-      paint: getPaint(layer, geometry)
+      source: layer.url,
+      layout: { visibility: "none" },
+      paint: getPaint(layer, geometry) 
     });
 
     // hover
@@ -534,21 +517,22 @@ map.on('load', async () => {
 
   });
 
-  // 获取“当前可见图层”
+  // 当前可见图层
   function getVisibleLayerIds() {
     return allLayers
       .map(l => l.id)
-      .filter(id => map.getLayer(id) && map.getLayoutProperty(id, 'visibility') === 'visible');
+      .filter(id =>
+        map.getLayer(id) &&
+        map.getLayoutProperty(id, 'visibility') === 'visible'
+      );
   }
 
-  // 统一 click
+  // 点击出现弹窗
   map.on('click', (e) => {
 
-    // 永远先关闭
     popup.remove();
 
     const visibleLayers = getVisibleLayerIds();
-
     if (!visibleLayers.length) return;
 
     const features = map.queryRenderedFeatures(e.point, {
@@ -559,27 +543,72 @@ map.on('load', async () => {
 
     const feature = features[0];
     const properties = feature.properties;
+    const layerId = feature.layer.id;
+
+    // 找到当前 layer 配置
+    const layerConfigItem = allLayers.find(l => l.id === layerId);
 
     let html = '';
+
+  // 2IPD（国家 + 当前字段）
+    if (layerId.startsWith('2IPD')) {
+
+      const field = layerConfigItem?.field;
+
+    // 国家字段
+      const country =
+        properties["Country_Name"] ||
+        "N/A";
+
+      const value = properties[field];
+
+    // 字段名美化
+      const label = field
+        .replace('2IPD_2025_', '')
+        .replace(/_/g, ' ');
+
+      html = `
+        <div><b>Country:</b> ${country}</div>
+        <div><b>${label}:</b> ${value ?? 'N/A'}</div>
+      `;
+    }
+
+ 
+  // Post Office
+
+  else if (layerId.startsWith('postoffice')) {
+
+    html = '';
+
     for (const key in properties) {
       html += `<div><b>${key}:</b> ${properties[key]}</div>`;
     }
+  }
 
-    popup
-      .setLngLat(e.lngLat)
-      .setHTML(html)
-      .addTo(map);
-  });
+  // fallback
+  if (!html) {
+    html = `<div>No data</div>`;
+  }
 
+  popup
+    .setLngLat(e.lngLat)
+    .setHTML(html)
+    .addTo(map);
+});
 
   // 图层切换
   window.toggleLayer = function(layerId, visible) {
-    map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
-    // 切换图层时强制关闭 popup
+    map.setLayoutProperty(
+      layerId,
+      'visibility',
+      visible ? 'visible' : 'none'
+    );
     popup.remove();
   };
 
 });
+
+
 
 // 创建面板
 createLayerPanel();
@@ -588,7 +617,7 @@ createLayerPanel();
 function createLayerPanel() {
 
   const panel = document.getElementById('panel');
-  panel.innerHTML = ''; // 防止重复渲染
+  panel.innerHTML = '';
 
   layerConfig.forEach(group => {
 
@@ -596,42 +625,66 @@ function createLayerPanel() {
     details.open = false;
 
     const summary = document.createElement('summary');
-    summary.className = 'group-title';
     summary.innerText = group.group;
 
     details.appendChild(summary);
 
     const content = document.createElement('div');
-    content.className = 'group-content';
 
-    // Post Office（多选）
+    // ===== Post Office =====
     if (group.layers) {
       group.layers.forEach(layer => {
-        content.appendChild(createLayerItem(layer, {
-          type: 'checkbox'
-        }));
+        content.appendChild(createLayerItem(layer, { type: 'checkbox' }));
       });
     }
 
-    // 2IPD（单选）
+    // ===== 2IPD YEARS =====
     if (group.subgroups) {
-      group.subgroups.forEach(sub => {
 
-        const subTitle = document.createElement('div');
-        subTitle.innerText = sub.name;
-        subTitle.style.fontWeight = "bold";
-        subTitle.style.margin = "8px 0 4px 0";
+      const select = document.createElement('select');
+      select.style.width = "100%";
 
-        content.appendChild(subTitle);
+      const container = document.createElement('div');
 
-        sub.layers.forEach(layer => {
-          content.appendChild(createLayerItem(layer, {
-            type: 'radio',
-            group: '2IPD'   // 全部 2IPD 共享一个组（全局单选）
-          }));
+      content.appendChild(select);
+      content.appendChild(container);
+
+      let current = group.subgroups[0];
+
+      group.subgroups.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.innerText = s.name;
+        select.appendChild(opt);
+      });
+
+      const render = (sub) => {
+
+        container.innerHTML = '';
+
+        sub.layers.forEach(l => {
+          container.appendChild(
+            createLayerItem(l, {
+              type: 'radio',
+              group: '2IPD'
+            })
+          );
+        });
+      };
+
+      select.onchange = (e) => {
+        current = group.subgroups.find(s => s.name === e.target.value);
+
+        // 关闭旧layer
+        group.subgroups.forEach(s => {
+          s.layers.forEach(l => toggleLayer(l.id, false));
         });
 
-      });
+        render(current);
+      };
+
+      select.value = current.name;
+      render(current);
     }
 
     details.appendChild(content);
@@ -698,9 +751,7 @@ function createLayerItem(layer, options = {}) {
       }
     }
 
-   
     // 原有逻辑（2IPD 单选）
-   
     if (type === 'radio') {
       layerConfig.forEach(group => {
         group.subgroups?.forEach(sub => {

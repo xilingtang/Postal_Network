@@ -46,9 +46,12 @@ body { margin: 0; }
 
 const map = new maplibregl.Map({
   container: 'map',
+
   style: {
     version: 8,
+
     sources: {
+      // ArcGIS raster 底图
       'arcgis-tiles': {
         type: 'raster',
         tiles: [
@@ -56,20 +59,41 @@ const map = new maplibregl.Map({
         ],
         tileSize: 256,
         attribution: '© UN Maps ClearMap'
+      },
+
+      // GeoJSON polygon
+      'BNDA': {
+        type: 'geojson',
+        data: './data/BNDA.geojson'
       }
     },
+
     layers: [
+      // raster 底图
       {
         id: 'arcgis-layer',
         type: 'raster',
         source: 'arcgis-tiles'
+      },
+
+      // polygon 边界线
+      {
+        id: 'polygon-outline',
+        type: 'line',
+        source: 'BNDA',
+
+        paint: {
+          'line-color': '#ccc',
+          'line-width': 1,
+          'line-opacity': 1
+        }
       }
     ]
   },
+
   center: [35.85, 32.30],
   zoom: 1
 });
-
 
 // 图层配置
 
@@ -579,6 +603,14 @@ map.on('load', async () => {
 
   else if (layerId.startsWith('postoffice')) {
 
+    const currentZoom = map.getZoom();
+
+    map.flyTo({
+      center: feature.geometry.coordinates,
+      zoom: Math.max(currentZoom, 5),
+      duration: 1200
+    });
+
     html = '';
 
     for (const key in properties) {
@@ -673,12 +705,26 @@ function createLayerPanel() {
         });
       };
 
+     
       select.onchange = (e) => {
+
         current = group.subgroups.find(s => s.name === e.target.value);
 
         // 关闭旧layer
         group.subgroups.forEach(s => {
-          s.layers.forEach(l => toggleLayer(l.id, false));
+          s.layers.forEach(l => {
+            toggleLayer(l.id, false);
+          });
+        });
+
+        // 清空 legend
+        const legend = document.getElementById('legend');
+        legend.innerHTML = '';
+        legend.style.display = 'none';
+
+        // 同时取消 radio 选中状态
+        document.querySelectorAll('input[name="2IPD"]').forEach(el => {
+          el.checked = false;
         });
 
         render(current);

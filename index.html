@@ -46,6 +46,8 @@ body { margin: 0; }
 
 const map = new maplibregl.Map({
   container: 'map',
+  
+  maxZoom:5,
 
   style: {
     version: 8,
@@ -587,10 +589,8 @@ map.on('load', async () => {
 
       const value = properties[field];
 
-    // 字段名美化
+    // 分数字段名
       const label = field
-        .replace('2IPD_2025_', '')
-        .replace(/_/g, ' ');
 
       html = `
         <div><b>Country:</b> ${country}</div>

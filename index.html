@@ -42,18 +42,16 @@ body { margin: 0; }
 
 <script>
 
-// 初始化地图
+// initialize the basemap
 
 const map = new maplibregl.Map({
   container: 'map',
   
-  maxZoom:5,
-
   style: {
     version: 8,
 
     sources: {
-      // ArcGIS raster 底图
+      // source of basemap 1 ArcGIS raster
       'arcgis-tiles': {
         type: 'raster',
         tiles: [
@@ -63,7 +61,7 @@ const map = new maplibregl.Map({
         attribution: '© UN Maps ClearMap'
       },
 
-      // GeoJSON polygon
+      // source of basemap 2 BNDA polygon
       'BNDA': {
         type: 'geojson',
         data: './data/BNDA.geojson'
@@ -71,14 +69,14 @@ const map = new maplibregl.Map({
     },
 
     layers: [
-      // raster 底图
+      // layer basemap 1 ArcGIS raster
       {
         id: 'arcgis-layer',
         type: 'raster',
         source: 'arcgis-tiles'
       },
 
-      // polygon 边界线
+      // layer basemap 2 BNDA polygon
       {
         id: 'polygon-outline',
         type: 'line',
@@ -97,7 +95,7 @@ const map = new maplibregl.Map({
   zoom: 1
 });
 
-// 图层配置
+// layer settings
 
 const layerConfig = [
   {
@@ -110,6 +108,7 @@ const layerConfig = [
       { id: "postoffice_khm", name: "KHM", url: "data/postoffice_khm.geojson" },
       { id: "postoffice_lyb", name: "LYB", url: "data/postoffice_lyb.geojson" },
       { id: "postoffice_pan", name: "PAN", url: "data/postoffice_pan.geojson" },
+      { id: "postoffice_sau", name: "SAU", url: "data/postoffice_sau.geojson" },
       { id: "postoffice_sdn", name: "SDN", url: "data/postoffice_sdn.geojson" },
       { id: "postoffice_som", name: "SOM", url: "data/postoffice_som.geojson" },
       { id: "postoffice_swz", name: "SWZ", url: "data/postoffice_swz.geojson" },
@@ -133,7 +132,7 @@ const layerConfig = [
 
 const sourceCache = {};
 
-// 工具函数 构建2IPD图层
+// function: build 2IPD layers
 
 function build2IPDLayers(year) {
 
@@ -157,7 +156,7 @@ function build2IPDLayers(year) {
   }));
 }
 
-// 工具函数 开始状态下关闭所有图层
+// function: start with all layers hidden
 
 function toggleLayer(id, visible) {
   if (!map.getLayer(id)) return;
@@ -169,13 +168,13 @@ function toggleLayer(id, visible) {
   );
 }
 
-// 工具函数 渲染图层
+// function: render layers
 
 function getPaint(layer, geometry) {
 
   const field = layer.field;
 
-  // 渲染图层 Post Office
+  // render layer: post office
   if (geometry === 'Point' || geometry === 'MultiPoint') {
     return {
       'circle-radius': 3,
@@ -185,7 +184,7 @@ function getPaint(layer, geometry) {
     };
   }
 
-  // 渲染图层 2IPD
+  // render layer: 2IPD
   if (layer.id.startsWith('2IPD') && field) {
 
     if (field.includes('PDL')) {
@@ -213,12 +212,12 @@ function getPaint(layer, geometry) {
     const gradient = (stops) => ({
       "fill-color": [
         "case",
-       // 如果字段不存在 / null / 空
+       // if null paint grey
         ["!", ["has", field]], "#ccc",
 
         ["==", ["get", field], null], "#ccc",
 
-      // 否则正常渐变
+       // otherwise, normal gradient
         [
           "interpolate", ["linear"],
           ["to-number", ["get", field]],
@@ -241,7 +240,7 @@ function getPaint(layer, geometry) {
 }
 
 
-// 工具函数 切换图例
+// function: update the legend when changing layers
 
 function updateLegend(layerId) {
 
@@ -249,13 +248,12 @@ function updateLegend(layerId) {
   legend.innerHTML = '';
   legend.style.display = 'block';
 
-  // ===== Post Office =====
+  // legend: post office
   if (layerId.startsWith('postoffice')) {
     createPointLegend(legend);
     return;
   }
 
-  // ===== 找配置 =====
   const layerConfigItem = allLayers.find(l => l.id === layerId);
   const field = layerConfigItem?.field;
 
@@ -264,13 +262,13 @@ function updateLegend(layerId) {
     return;
   }
 
-  // ===== PDL =====
+  // legend: PDL
   if (field.includes('PDL')) {
     createPDLLegend(legend);
     return;
   }
 
-  // ===== 渐变 =====
+  // legend: gradient
   const fillColor = map.getPaintProperty(layerId, 'fill-color');
 
   if (!fillColor) {
@@ -282,7 +280,7 @@ function updateLegend(layerId) {
 }
 
 
-// 工具函数 点图例
+// function: create point legend
 
 function createPointLegend(container) {
 
@@ -313,7 +311,7 @@ function createPointLegend(container) {
   container.appendChild(item);
 }
 
-// 工具函数 PDL图例
+// function: create PDL legend
 
 function createPDLLegend(container) {
 
@@ -326,7 +324,6 @@ function createPDLLegend(container) {
 
   container.appendChild(title);
 
-  // 新增一个横向容器
   const row = document.createElement('div');
   row.style.display = 'flex';
   row.style.flexWrap = 'wrap'; 
@@ -369,12 +366,11 @@ function createPDLLegend(container) {
   }
 }
 
-// 工具函数 渐变图例
+// function: create gradient legend
 function createGradientLegendFromMapLibre(container, layerId, fillColor) {
 
   container.style.display = 'block';
 
-  // ===== 标题 =====
   const title = document.createElement('div');
   title.innerText = layerId
     .replace(/2IPD_\d+_/, '')
@@ -383,7 +379,6 @@ function createGradientLegendFromMapLibre(container, layerId, fillColor) {
   title.style.marginBottom = '6px';
   container.appendChild(title);
 
-  // ===== 非表达式（纯色）=====
   if (!Array.isArray(fillColor)) {
     const box = document.createElement('div');
     box.style.width = '16px';
@@ -394,7 +389,6 @@ function createGradientLegendFromMapLibre(container, layerId, fillColor) {
     return;
   }
 
-  // ===== 递归查找 interpolate =====
   function findInterpolate(expr) {
     if (!Array.isArray(expr)) return null;
     if (expr[0] === 'interpolate') return expr;
@@ -413,7 +407,6 @@ function createGradientLegendFromMapLibre(container, layerId, fillColor) {
     return;
   }
 
-  // ===== 提取 stops =====
   const stops = [];
 
   for (let i = 3; i < interpolateExpr.length; i += 2) {
@@ -429,7 +422,6 @@ function createGradientLegendFromMapLibre(container, layerId, fillColor) {
   const max = stops[stops.length - 1].value;
   const range = max - min || 1;
 
-  // ===== 生成渐变 =====
   const gradientStr = stops.map(s => {
     const percent = ((s.value - min) / range) * 100;
     return `${s.color} ${percent}%`;
@@ -443,7 +435,6 @@ function createGradientLegendFromMapLibre(container, layerId, fillColor) {
 
   container.appendChild(bar);
 
-  // ===== 标签 =====
   const labels = document.createElement('div');
   labels.style.display = 'flex';
   labels.style.justifyContent = 'space-between';
@@ -460,15 +451,14 @@ function createGradientLegendFromMapLibre(container, layerId, fillColor) {
   container.appendChild(labels);
 }
 
-// 加载所有图层
+// load all layers
 
-let allLayers = []; // 提到外面
+let allLayers = [];
 
 map.on('load', async () => {
 
   allLayers = [];
 
-  // 扁平化
   layerConfig.forEach(group => {
     if (group.layers) allLayers.push(...group.layers);
 
@@ -479,7 +469,6 @@ map.on('load', async () => {
     }
   });
 
-  // 加载数据
   const results = await Promise.all(
     allLayers.map(layer => {
       if (sourceCache[layer.url]) {
@@ -504,13 +493,11 @@ map.on('load', async () => {
     closeOnClick: false
   });
 
-  // 添加图层
   allLayers.forEach((layer, index) => {
 
     const geojson = results[index];
     if (!geojson || !geojson.features?.length) return;
 
-    // 共享 source（避免重复加载）
     if (!map.getSource(layer.url)) {
       map.addSource(layer.url, {
         type: 'geojson',
@@ -518,7 +505,7 @@ map.on('load', async () => {
       });
     }
 
-    // 自动识别几何类型
+    // identify geometric types
     const geometry = geojson.features[0].geometry.type;
 
     let layerType = 'fill';
@@ -544,7 +531,7 @@ map.on('load', async () => {
 
   });
 
-  // 当前可见图层
+  // identify visible layer
   function getVisibleLayerIds() {
     return allLayers
       .map(l => l.id)
@@ -554,7 +541,7 @@ map.on('load', async () => {
       );
   }
 
-  // 点击出现弹窗
+  // popup
   map.on('click', (e) => {
 
     popup.remove();
@@ -572,24 +559,23 @@ map.on('load', async () => {
     const properties = feature.properties;
     const layerId = feature.layer.id;
 
-    // 找到当前 layer 配置
     const layerConfigItem = allLayers.find(l => l.id === layerId);
 
     let html = '';
 
-  // 2IPD（国家 + 当前字段）
+   // popup 2IPD layer
     if (layerId.startsWith('2IPD')) {
 
       const field = layerConfigItem?.field;
 
-    // 国家字段
+    // country name
       const country =
         properties["Country_Name"] ||
         "N/A";
 
       const value = properties[field];
 
-    // 分数字段名
+    // score
       const label = field
 
       html = `
@@ -599,9 +585,9 @@ map.on('load', async () => {
     }
 
  
-  // Post Office
+   // popup post office layer
 
-  else if (layerId.startsWith('postoffice')) {
+    else if (layerId.startsWith('postoffice')) {
 
     const currentZoom = map.getZoom();
 
@@ -629,7 +615,7 @@ map.on('load', async () => {
     .addTo(map);
 });
 
-  // 图层切换
+  // change layer
   window.toggleLayer = function(layerId, visible) {
     map.setLayoutProperty(
       layerId,
@@ -643,10 +629,9 @@ map.on('load', async () => {
 
 
 
-// 创建面板
+// create panel
 createLayerPanel();
 
-// 图层控制面板
 function createLayerPanel() {
 
   const panel = document.getElementById('panel');
@@ -664,14 +649,14 @@ function createLayerPanel() {
 
     const content = document.createElement('div');
 
-    // ===== Post Office =====
+    // panel: post office
     if (group.layers) {
       group.layers.forEach(layer => {
         content.appendChild(createLayerItem(layer, { type: 'checkbox' }));
       });
     }
 
-    // ===== 2IPD YEARS =====
+    // panel: 2IPD
     if (group.subgroups) {
 
       const select = document.createElement('select');
@@ -705,24 +690,21 @@ function createLayerPanel() {
         });
       };
 
-     
+     // drop-down select box
       select.onchange = (e) => {
 
         current = group.subgroups.find(s => s.name === e.target.value);
 
-        // 关闭旧layer
         group.subgroups.forEach(s => {
           s.layers.forEach(l => {
             toggleLayer(l.id, false);
           });
         });
 
-        // 清空 legend
         const legend = document.getElementById('legend');
         legend.innerHTML = '';
         legend.style.display = 'none';
 
-        // 同时取消 radio 选中状态
         document.querySelectorAll('input[name="2IPD"]').forEach(el => {
           el.checked = false;
         });
@@ -740,7 +722,6 @@ function createLayerPanel() {
 }
 
 
-// 图层项
 function createLayerItem(layer, options = {}) {
 
   const { type = 'checkbox', group = '' } = options;
@@ -752,23 +733,20 @@ function createLayerItem(layer, options = {}) {
   input.type = type;
 
   if (type === 'radio') {
-    input.name = group; // 2IPD 单选
+    input.name = group; 
   }
 
   input.checked = false;
 
   input.onchange = () => {
 
-    // 判断当前图层类型
     const is2IPD = layer.id.startsWith('2IPD');
     const isPost = layer.id.startsWith('postoffice');
-
-    // 核心新增逻辑（互斥）
 
     if (input.checked) {
 
       if (isPost) {
-        // 选 Post Office → 关闭所有 2IPD
+        // if post office is selected → hide all 2IPD layers
         layerConfig.forEach(group => {
           group.subgroups?.forEach(sub => {
             sub.layers.forEach(l => {
@@ -777,28 +755,28 @@ function createLayerItem(layer, options = {}) {
           });
         });
 
-        // 同步取消 radio UI
+        // cancel radio UI
         document.querySelectorAll('input[name="2IPD"]').forEach(el => {
           el.checked = false;
         });
       }
 
       if (is2IPD) {
-        // 选 2IPD → 关闭所有 Post Office
+        // if 2IPD is selected → hide all post offices
         layerConfig.forEach(group => {
           group.layers?.forEach(l => {
             toggleLayer(l.id, false);
           });
         });
 
-        // 同步取消 checkbox UI
+        // cancel checkbox UI
         document.querySelectorAll('.layer-item input[type="checkbox"]').forEach(el => {
           el.checked = false;
         });
       }
     }
 
-    // 原有逻辑（2IPD 单选）
+    // 2IPD radio
     if (type === 'radio') {
       layerConfig.forEach(group => {
         group.subgroups?.forEach(sub => {
@@ -809,10 +787,8 @@ function createLayerItem(layer, options = {}) {
       });
     }
 
-    // 当前图层开关
     toggleLayer(layer.id, input.checked);
 
-    // legend 控制
     const legend = document.getElementById('legend');
 
     if (input.checked) {
